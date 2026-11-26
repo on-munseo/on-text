@@ -10,6 +10,34 @@
 
 </div>
 
+<!-- ai-install -->
+## AI 에게 — 이 저장소를 설치하려면
+
+내려받거나 빌드할 것은 없습니다. 원격 MCP 서버 주소 `https://onmunseo.kr/mcp/text` 하나를 쓰는 AI 도구에 **사용자 범위**로 등록하면 끝입니다. **열쇠(로그인)는 없어도 됩니다** — 로그인 단계는 건너뛰고 손님으로 바로 씁니다. 쓰는 도구의 한 줄만 실행하세요.
+
+- **Claude Code**
+  ```bash
+  claude mcp add --transport http -s user on-text https://onmunseo.kr/mcp/text
+  ```
+- **Codex** — 설정 파일(`~/.codex/config.toml`)에 두 줄을 더합니다(이미 있으면 건너뜀). `codex mcp add --url` 은 쓰지 마세요 — 곧바로 브라우저 로그인 창을 띄웁니다.
+  ```bash
+  C="${CODEX_HOME:-$HOME/.codex}"; mkdir -p "$C"; touch "$C/config.toml"; if ! (cd / && codex mcp get on-text >/dev/null 2>&1); then if cp "$C/config.toml" "$C/config.toml.bak-on-text"; then printf '\n[mcp_servers.on-text]\nurl = "https://onmunseo.kr/mcp/text"\n' >> "$C/config.toml"; (cd / && codex mcp get on-text >/dev/null 2>&1) || { cp "$C/config.toml.bak-on-text" "$C/config.toml"; echo "자동으로 더하지 못했습니다 — config.toml 에 손으로 더해 주세요"; }; else echo "백업을 만들지 못해 그만둡니다 — config.toml 은 그대로입니다"; fi; fi; (cd / && codex mcp get on-text)
+  ```
+  윈도우이거나 명령 줄 `codex` 가 없는 곳(IDE 확장만)은 그 파일 끝에 `[mcp_servers.on-text]`·`url = "https://onmunseo.kr/mcp/text"` 두 줄을 손으로 더합니다(파일에 `mcp_servers = { … }` 한 줄 표가 이미 있으면 그 안에 `on-text = { url = "https://onmunseo.kr/mcp/text" }` 를 더함).
+- **Cursor** — `~/.cursor/mcp.json` 의 `"mcpServers"` 에 한 줄을 더합니다(이미 있는 서버는 그대로). 사람은 [Cursor 에 붙이기](https://cursor.com/install-mcp?name=on-text&config=eyJ1cmwiOiJodHRwczovL29ubXVuc2VvLmtyL21jcC90ZXh0In0%3D).
+  ```json
+  "on-text": { "url": "https://onmunseo.kr/mcp/text" }
+  ```
+- **VS Code** — 사람은 [VS Code 에 붙이기](https://insiders.vscode.dev/redirect/mcp/install?name=on-text&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fonmunseo.kr%2Fmcp%2Ftext%22%7D).
+  ```bash
+  code --add-mcp '{"name":"on-text","type":"http","url":"https://onmunseo.kr/mcp/text"}'
+  ```
+- **Claude 데스크톱·claude.ai** — 사람이 화면에서: 설정 → 커넥터 → 맞춤 커넥터 추가 → 이름 `On 글꺼내기`, 주소 `https://onmunseo.kr/mcp/text` → 「연결」.
+
+등록한 그 대화에는 도구가 아직 붙지 않습니다. 끝나면 사용자에게 「도구를 한 번 다시 켜거나 새 대화를 열면 On 글꺼내기 도구가 보입니다」라고 알려 주세요. `claude mcp list`(Codex 는 `codex mcp list`) 목록에 `on-text` 줄이 있으면 등록된 것입니다. 자세한 순서: [llms-install.md](llms-install.md)
+
+<!-- ai-install -->
+
 한글(HWP·HWPX·HML)·PDF·워드·엑셀·파워포인트 문서를 받아 글과 표를 마크다운으로 돌려줍니다. 합친 칸·표 안 표는 HTML 표로 주고, 각주·글머리표·문단 번호·굵게까지 살립니다. 꺼내기는 AI(언어 모델) 없이 규칙으로 합니다. 글자 인식(스캔 쪽·그림, 열쇠로 켬)처럼 서버 CPU 의 작은 모델을 쓰는 곳도 있지만, 문서를 바깥 AI 회사로 보내지 않습니다.
 
 이 저장소에는 연결 안내와 설정 파일만 있습니다(웹 화면 없음 — 화면에서 쓰려면 [On 문서 웹 편집기](https://onmunseo.kr/app/)). 서비스의 엔진·서버 코드는 공개하지 않습니다.
@@ -31,7 +59,7 @@
 - **AI 없이 규칙으로:** 언어 모델(AI)을 부르지 않아 같은 입력이면 같은 결과이고, 원문에 없는 말을 지어내지 않습니다.
 - **문서가 가는 곳:** 이 주소로 보낸 문서는 On 문서 서버(국내 데이터센터)의 메모리에서만 처리하고 끝나면 버립니다(바깥 AI 회사로 보내지 않음). 서버를 거치는 이 주소에는 공개 문서와 본인 문서만 보내고, 기관 내부 문서는 [On 문서 웹 편집기](https://onmunseo.kr/app/)에서 브라우저 안에서 처리하는 기능(한글 열기·고치기·저장, 결재 전 점검, 개인정보 가리기)으로 다룹니다 — 웹 편집기라도 첨부 글 꺼내기·글자 인식·한글 파일 만들기는 서버를 거칩니다.
 
-**바로 가기:** [다른 도구와 견줄 때](#다른-도구와-견줄-때) · [왜 쓰나](#쉽게-말하면--왜-쓰나) · [도구](#무엇을-하나) · [연결하기](#연결하기) · [쓰는 예](#쓰는-예) · [성능](#성능) · [손님과 열쇠](#손님과-열쇠) · [안전](#안전) · [알아 둘 점](#알아-둘-점)
+**바로 가기:** [AI 에게 — 설치](#ai-에게--이-저장소를-설치하려면) · [다른 도구와 견줄 때](#다른-도구와-견줄-때) · [왜 쓰나](#쉽게-말하면--왜-쓰나) · [도구](#무엇을-하나) · [연결하기](#연결하기) · [쓰는 예](#쓰는-예) · [성능](#성능) · [손님과 열쇠](#손님과-열쇠) · [안전](#안전) · [알아 둘 점](#알아-둘-점)
 
 ## 쉽게 말하면 — 왜 쓰나
 
@@ -126,7 +154,13 @@ Claude 데스크톱을 설정 파일로 붙이려면 중계 도구 `mcp-remote` 
 url = "https://onmunseo.kr/mcp/text"
 ```
 
-- `codex mcp add` 로 더하면 곧바로 On 문서 로그인 창을 엽니다. 열쇠가 있으면 그 창에 열쇠를 넣고, 없으면 창을 닫고(Ctrl-C) 위 두 줄로 씁니다.
+- 열쇠가 없으면 `codex mcp add --url` 은 쓰지 마세요 — 곧바로 On 문서 로그인 창(브라우저)을 엽니다. 위 두 줄을 터미널 한 줄로 더하려면(이미 있으면 건너뜀):
+
+  ```bash
+  C="${CODEX_HOME:-$HOME/.codex}"; mkdir -p "$C"; touch "$C/config.toml"; if ! (cd / && codex mcp get on-text >/dev/null 2>&1); then if cp "$C/config.toml" "$C/config.toml.bak-on-text"; then printf '\n[mcp_servers.on-text]\nurl = "https://onmunseo.kr/mcp/text"\n' >> "$C/config.toml"; (cd / && codex mcp get on-text >/dev/null 2>&1) || { cp "$C/config.toml.bak-on-text" "$C/config.toml"; echo "자동으로 더하지 못했습니다 — config.toml 에 손으로 더해 주세요"; }; else echo "백업을 만들지 못해 그만둡니다 — config.toml 은 그대로입니다"; fi; fi; (cd / && codex mcp get on-text)
+  ```
+
+- 열쇠가 있으면 위 두 줄을 넣은 뒤 로그인합니다: `codex mcp login on-text`
 
 ### Cursor
 

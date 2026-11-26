@@ -10,6 +10,34 @@ A remote MCP server that extracts text and tables from Korean HWP/HWPX, PDF, Wor
 
 </div>
 
+<!-- ai-install -->
+## For AI assistants — installing this repository
+
+Nothing to download or build: register the remote MCP server `https://onmunseo.kr/mcp/text` in the user's AI tool at **user scope**. **No key or sign-in is needed** — skip the sign-in step and the tools work as a guest. Run only the line for the tool in use.
+
+- **Claude Code**
+  ```bash
+  claude mcp add --transport http -s user on-text https://onmunseo.kr/mcp/text
+  ```
+- **Codex** — append two lines to the config file (`~/.codex/config.toml`; skipped if already there). Do not use `codex mcp add --url` — it opens a browser sign-in window right away.
+  ```bash
+  C="${CODEX_HOME:-$HOME/.codex}"; mkdir -p "$C"; touch "$C/config.toml"; if ! (cd / && codex mcp get on-text >/dev/null 2>&1); then if cp "$C/config.toml" "$C/config.toml.bak-on-text"; then printf '\n[mcp_servers.on-text]\nurl = "https://onmunseo.kr/mcp/text"\n' >> "$C/config.toml"; (cd / && codex mcp get on-text >/dev/null 2>&1) || { cp "$C/config.toml.bak-on-text" "$C/config.toml"; echo "자동으로 더하지 못했습니다 — config.toml 에 손으로 더해 주세요"; }; else echo "백업을 만들지 못해 그만둡니다 — config.toml 은 그대로입니다"; fi; fi; (cd / && codex mcp get on-text)
+  ```
+  On Windows, or where the `codex` command is not installed (IDE extension only), add the two lines `[mcp_servers.on-text]` and `url = "https://onmunseo.kr/mcp/text"` to the end of that file by hand (if the file already has a one-line `mcp_servers = { … }` table, add `on-text = { url = "https://onmunseo.kr/mcp/text" }` inside it instead).
+- **Cursor** — add one entry to `"mcpServers"` in `~/.cursor/mcp.json` (keep the other servers). For people: [Add to Cursor](https://cursor.com/install-mcp?name=on-text&config=eyJ1cmwiOiJodHRwczovL29ubXVuc2VvLmtyL21jcC90ZXh0In0%3D).
+  ```json
+  "on-text": { "url": "https://onmunseo.kr/mcp/text" }
+  ```
+- **VS Code** — for people: [Add to VS Code](https://insiders.vscode.dev/redirect/mcp/install?name=on-text&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fonmunseo.kr%2Fmcp%2Ftext%22%7D).
+  ```bash
+  code --add-mcp '{"name":"on-text","type":"http","url":"https://onmunseo.kr/mcp/text"}'
+  ```
+- **Claude Desktop · claude.ai** — done by the person in the app: Settings → Connectors → Add custom connector → name `On 글꺼내기`, URL `https://onmunseo.kr/mcp/text` → Connect.
+
+The tools do not attach to the conversation that registered them. When done, tell the user: "Restart the tool or open a new conversation to see the On 글꺼내기 tools." If `claude mcp list` (Codex: `codex mcp list`) lists `on-text`, it is registered. Full steps (Korean): [llms-install.md](llms-install.md)
+
+<!-- ai-install -->
+
 Send a Korean HWP/HWPX/HML, PDF, Word, Excel or PowerPoint file and get its text and tables back as Markdown. Merged cells and nested tables come back as HTML tables; footnotes, bullets, paragraph numbers and bold text are kept. Extraction is rule-based, with no language model. Some steps, such as the optional text recognition for scans and images (key holders, `ocr: true`), use small models on the server CPU, but documents are never sent to an outside AI company.
 
 This repository holds only the setup guide and configuration files (there is no web page here — to use a screen, open the [On 문서 web editor](https://onmunseo.kr/app/)). The engine and server code of the service are not public. The service and its tools speak Korean.
