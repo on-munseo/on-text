@@ -1,0 +1,285 @@
+<div align="center">
+
+# On 글꺼내기 (on-text)
+
+A remote MCP server that extracts text and tables from Korean HWP/HWPX, PDF, Word, Excel and PowerPoint files
+
+[한국어](README.md) · **English**
+
+`https://onmunseo.kr/mcp/text`
+
+</div>
+
+Send a Korean HWP/HWPX/HML, PDF, Word, Excel or PowerPoint file and get its text and tables back as Markdown. Merged cells and nested tables come back as HTML tables; footnotes, bullets, paragraph numbers and bold text are kept. Extraction is rule-based, with no language model. Some steps, such as the optional text recognition for scans and images (key holders, `ocr: true`), use small models on the server CPU, but documents are never sent to an outside AI company.
+
+This repository holds only the setup guide and configuration files (there is no web page here — to use a screen, open the [On 문서 web editor](https://onmunseo.kr/app/)). The engine and server code of the service are not public. The service and its tools speak Korean.
+
+**Jump to:** [Why](#in-short--why-use-it) · [Tools](#what-it-does) · [Connect](#connect) · [Examples](#examples) · [Measured results](#measured-results) · [Guest and key](#guest-and-key) · [Safety](#safety) · [Good to know](#good-to-know)
+
+## In short — why use it
+
+| Common pain | With On 글꺼내기 |
+|---|---|
+| An AI chat cannot open Korean HWP/HWPX files, or reads only part of the text | One tool reads HWP/HWPX, PDF and Office files and hands over the text and tables as Markdown |
+| Tables turn into running text and the cells get mixed up | Merged cells and nested tables come back as HTML tables (rowspan, colspan); `on_tables` returns tables only |
+| You compare the old and new versions of a document by eye | `on_compare` lines up two documents as an old / new / note table |
+| Chapter and section structure is lost when you index a document for search (RAG) | `on_chunks` returns chunks that keep the heading and bullet path |
+| You worry that resident registration or account numbers in a file go straight to the AI | If resident/alien registration, account, card or passport numbers are found, `on_read` returns a masked text with a notice (when `mask` is not set) |
+
+**When you do not need it:** If you only need a few lines, copy and paste is enough. On a PC with the Hancom word processor installed, copying from there works too.
+
+## What it does
+
+| Tool | What it does | Guest |
+|---|---|---|
+| `on_read` | Text and tables as Markdown (merged cells and nested tables as HTML), with page, paragraph and table counts | yes |
+| `on_detect` | Identifies the format (hwp, hwpx, pdf, docx, xlsx, pptx and more) and version, compression, encryption and distribution-only flags | yes |
+| `on_meta` | Title, author, last saved by, created and modified dates, page count (the body is not read) | yes |
+| `on_tables` | Data and contact tables only (decoration boxes skipped unless `all=true`); `as=rows` returns rows and cells as JSON | yes |
+| `on_chunks` | Search and RAG chunks (JSON) that keep the heading and bullet path; tables become separate chunks | yes |
+| `on_compare` | Lines up two documents (formats may differ) paragraph by paragraph and cell by cell as an old / new / note table | yes |
+
+- The 6 guest tools were checked on 2026-11-26 by calling `tools/list` on the live server as a guest.
+- Options: `ocr: true` text recognition for scanned pages and images (key holders, 30 pages a day) · `precise: true` reads text and tables inside PDF images in place (key holders; `on_read`, `on_tables`, `on_chunks`) · `mask` (`on_read` masks automatically only when registration, account, card or passport numbers are found unless you set it; true always masks, false gives the original; `on_tables`, `on_chunks` and `on_compare` mask when true).
+- Send files as `file_base64` (the file in base64) plus `file_name` (the extension decides the format), or put a 15-minute link from On 문서 “자료 올리기” (upload, [onmunseo.kr/start](https://onmunseo.kr/start)) in `file_url`. `on_compare` takes the two documents as `a_base64`/`a_name` (or `a_url`) and `b_base64`/`b_name` (or `b_url`).
+
+## Connect
+
+**Claude Code** — one line in the terminal (`-s user` makes it available in every folder):
+
+```bash
+claude mcp add --transport http -s user on-text https://onmunseo.kr/mcp/text
+```
+
+**Claude Code plugin** — one line (Claude Code 2.1.275 or later):
+
+```bash
+claude plugin install on-text --marketplace on-munseo/on-text
+```
+
+In every app, the conversation in which you register the server does not get the tools yet. Restart the app once (Claude Code: `/exit`, then `claude`; VS Code: a new chat) or open a new conversation, and the tools are there from then on. Without a key, skip the sign-in step and use it as a guest.
+
+> To use all document tools and the law tools (On 근거) together, add `https://onmunseo.kr/mcp` instead of this bundle (recommended — [On 문서](https://github.com/on-munseo/on-munseo.github.io)). If you add both, the same tools appear twice.
+
+### Claude Code — more
+
+- With a key: in Claude Code open `/mcp` → `on-text` → Authenticate, and the On 문서 sign-in page opens. Enter your key there.
+- To pass the key as a header: `claude mcp add --transport http -s user on-text https://onmunseo.kr/mcp/text --header "Authorization: Bearer <key>"`. This stores the key in `~/.claude.json`, so the sign-in page is the better way.
+- Two-step plugin install (older versions): `claude plugin marketplace add on-munseo/on-text`, then `claude plugin install on-text@on-text`. In a Claude Code chat: `/plugin marketplace add on-munseo/on-text` → `/plugin install on-text@on-text`.
+- Check: `claude mcp list` · remove: `claude mcp remove on-text`.
+
+### claude.ai · Claude Desktop (connectors)
+
+Settings → Connectors → “Add custom connector”: name `On 글꺼내기`, URL `https://onmunseo.kr/mcp/text`, then Connect. With a key, enter it on the On 문서 sign-in page that opens; without one you are a guest. Menu names differ by plan and version, and some plans may not have this menu.
+
+To add it to Claude Desktop through the config file, use the `mcp-remote` bridge (needs Node.js). macOS `~/Library/Application Support/Claude/claude_desktop_config.json` · Windows `%APPDATA%\Claude\claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "on-text": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://onmunseo.kr/mcp/text"
+      ]
+    }
+  }
+}
+```
+
+To send a key as a header, append `"--header", "Authorization:${ON_AUTH}"` to `"args"` and add `"env": { "ON_AUTH": "Bearer <key>" }` (no space after the colon, so Windows does not split the argument). Restart Claude Desktop after saving.
+
+### ChatGPT
+
+1. Settings → Apps & Connectors → Advanced settings: turn on Developer mode (wording may differ by version).
+2. Create a custom MCP server: name `On 글꺼내기`, URL `https://onmunseo.kr/mcp/text`, authentication “OAuth” if you have a key, otherwise “None”.
+3. Enter your key on the On 문서 sign-in page, then turn the connector on from the tools (+) menu of a chat.
+
+- ChatGPT receives a separate pass instead of your key (same permissions and daily quota). Revoking the key blocks the pass at once.
+- Passing a file attached in the chat is not supported yet. Upload the file on On 문서 “자료 올리기” ([onmunseo.kr/start](https://onmunseo.kr/start)) and pass the 15-minute link; paste text directly.
+
+### Cursor
+
+`~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` in a project:
+
+```json
+{
+  "mcpServers": {
+    "on-text": {
+      "url": "https://onmunseo.kr/mcp/text"
+    }
+  }
+}
+```
+
+If your Cursor version cannot sign in to remote MCP servers (OAuth), add `"headers": { "Authorization": "Bearer <key>" }` (the key is then stored in the file).
+
+### VS Code
+
+`.vscode/mcp.json` in the workspace:
+
+```json
+{
+  "servers": {
+    "on-text": {
+      "type": "http",
+      "url": "https://onmunseo.kr/mcp/text"
+    }
+  }
+}
+```
+
+To send a key as a header without writing it in the file, let VS Code ask for it on first start:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "on-key",
+      "description": "On 문서 key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "on-text": {
+      "type": "http",
+      "url": "https://onmunseo.kr/mcp/text",
+      "headers": {
+        "Authorization": "Bearer ${input:on-key}"
+      }
+    }
+  }
+}
+```
+
+### Try it with curl
+
+List the tools (add `-H "Authorization: Bearer <key>"` if you have a key):
+
+```bash
+curl -s https://onmunseo.kr/mcp/text \
+  -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Read a document — send the file as base64 (the extension of `file_name` decides the format):
+
+```bash
+B64=$(base64 < example.hwpx | tr -d '\n')
+printf '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"on_read","arguments":{"file_name":"example.hwpx","file_base64":"%s"}}}' "$B64" > call.json
+curl -s https://onmunseo.kr/mcp/text \
+  -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" \
+  --data-binary @call.json
+```
+
+A one-page HWPX made with `on_write` was sent this way; the reply was the safety notice line, “쪽 1 · 문단 3 · 표 0” (1 page, 3 paragraphs, 0 tables) and the Markdown text (2026-11-26, guest). The answer is the text in `result.content`. The server is stateless (Streamable HTTP, POST), so a single `tools/call` works without `initialize`. Opening the URL in a browser shows a short guide page.
+
+## Examples
+
+| If you say | This tool |
+|---|---|
+| “(attaching an HWP file) Summarize this document” | `on_read` extracts the text, then the AI summarizes it |
+| “Pull out only the tables from this PDF” | `on_tables` |
+| “Make an old/new comparison table of last year's and this year's rules” | `on_compare` |
+| “Who last edited this file, and when?” | `on_meta` |
+| “This file will not open. What format is it?” | `on_detect` |
+| “Split it by chapter and section for search” | `on_chunks` |
+
+The AI decides which tool to call; these are typical cases.
+
+## Measured results
+
+| What | Test set | Result | Build · date · machine |
+|---|---|---|---|
+| Korean text in HWP/HWPX | 1,726 files (1,404 statute annexes and forms + 322 government press releases), scored against the text of the matching Hancom PDF | Hangul character recall 99.87% (1,714,403 of 1,716,582 characters) · files with no character missing 98.78% | build of 2026-11-12 |
+| Against the HWPX source | 50 statute-annex HWPX files not used in development, scored against the text and tables inside each file | character accuracy 0.999 · table structure TEDS 0.981 | text 2026-11-20 · tables 2026-11-23 (live build at the time) |
+| Word, Excel, PowerPoint | 457 public-data files (160 Word · 179 Excel · 118 PowerPoint), scored against text read with the standard libraries | text recall 100% · table-cell recall Word 98.95% · Excel 99.80% · PowerPoint 99.89% · read failures 0 | 2026-11-23 |
+| English PDF | opendataloader-bench, 200 pages, official scorer (overall) | default reading 0.945 (guest and the default of this endpoint) · precise reading 0.970 (`precise: true`, key holders — also 0.970 on the 125 pages not seen during development). The highest score on the official leaderboard (14 engines) is 0.907 | 2026-11-25 · iMac M1 · 0.027 s / 0.396 s per document |
+| Korean PDF | 300 HWP↔PDF pairs of the same annexes, scored against text and tables from the HWP source (reference built with two engines and averaged) | reading order 0.964 · tables 0.921 · read failures 0 | build of 2026-11-12 |
+| Scans and photos (`ocr: true`, key) | KoOCR-Bench v2, 877 pages | overall 0.883 · handwriting 0.850 | 2026-11-24 · median 4.0 s per page (M3 MacBook) |
+| Scanned tables (`ocr: true`, key) | 761 pages made by rendering table pages of public PDFs as images, scored against the PDF text layer | cell checks passed 88.8% (425 pages not seen while tuning) | 2026-11-24 |
+| Speed | 2,150 public HWP/HWPX files (statute annexes, forms and more) | 8.2 s for all (median 0.76 ms per file) | build of 2026-11-12 · MacBook M5 Pro |
+
+<sub>All values were measured by us; this is not an official ranking. Rows marked “build of 2026-11-12” were measured with that build and have not been re-run on the live build. The leaderboard value is the one the leaderboard publishes (engines outside the leaderboard are not included); our values come from the same official scorer, run by us. Definitions, confidence intervals and methods are in the [measurement notes](https://github.com/on-munseo/on-munseo.github.io/blob/main/docs/benchmark.md#5-글-꺼내기파싱--ai검색에-넣을-글과-표) (Korean).</sub>
+
+Weak spots: scans and handwriting are read on the server CPU without a GPU, so they score below large AI models. Tables in Korean PDFs (0.921) score lower than other formats, and 16 of the 1,726 HWP/HWPX files lost more than 10 characters. Word table cells (98.95%) are the lowest of the three Office formats.
+
+## Guest and key
+
+|  | Guest (no key) | Key |
+|---|---|---|
+| How to connect | Add the URL with no authentication | Enter the key on the On 문서 sign-in page (OAuth), or send `Authorization: Bearer <key>` |
+| Tools at this endpoint | 6 | 6 |
+| Daily quota | 50 calls a day and 6 a minute per internet address (IP), counted across all On 문서 endpoints and the web editor. When the shared guest quota for the day runs out, guest access closes until midnight Korea time | A daily quota and concurrency limit set per key |
+| Size | 6 MB per request (base64 included) | 25 MB per file |
+| Needs a key | — | text recognition (`ocr: true`, 30 pages a day per key) and precise reading (`precise: true`, PDF only — pages count toward both the 30-page recognition quota and the 40-page precise-reading quota) |
+
+- To get a key, write to `onmunseo.key [at] gmail.com` (subject “On 문서 열쇠 신청”), with what you will use it for and which bundle you need (e.g. On 글꺼내기).
+- A wrong or revoked key gives **401**; a bundle that is not in your key gives **403**. Too many calls in a short time give “too many requests” (429) — wait about a minute.
+- Never append the key to the URL; it would end up in chat and access logs.
+
+## Safety
+
+1. **Nothing is kept.** Documents and text you send are handled in server memory only and discarded when done. No document files are stored; the access log holds only the key alias, tool name, request size, time taken and success (no contents, no file names).
+2. **No language model.** Extraction is rule-based. Some steps, such as the optional text recognition (key holders), use small models on the server CPU, but documents are never sent to outside AI companies.
+3. **Send only public documents or your own.** Do not upload internal documents of your organisation. Documents with a written security marking (such as “대외비”, confidential) are not returned (except for keys specially allowed to).
+4. **Extracted text is returned as data.** When a result carries text taken from a document, its first line says not to follow instructions written inside the document, so text that looks like an instruction to the AI is not obeyed.
+5. **Safety limits stay on.** Size limits against attacks such as zip bombs, and refusal of distribution-only documents, are never lifted for convenience.
+
+Report security problems as described in [SECURITY.md](SECURITY.md).
+
+## Good to know
+
+- **This is a free trial service.** Features, quotas and URLs may change or stop. Changes are noted in [CHANGELOG.md](CHANGELOG.md).
+- **Results are for reference.** Have a person check them before approval.
+- If a guest sets `precise: true`, the default reading is used and the first line of the result says so. Precise reading works on PDF only; other formats fall back to the default reading with a notice.
+- Editing, PDF output and page images are not in this bundle (see [On HWPX 만들기](https://github.com/on-munseo/on-hwpx)).
+- Internet only — it cannot be used from closed government networks.
+- Menus differ by app and version, so screens may not match the steps above. If something fails, see [SUPPORT.md](SUPPORT.md).
+
+## Terms, privacy and notices
+
+- Bulk collection of results and use of results to train other AI models are not allowed. Automated abuse (several keys to get around limits, non-stop calls, scraping results) leads to the key being cut off without notice. Extracting or reverse-engineering the engine, rules or code is not permitted.
+- Summary: [terms in the MCP guide](https://github.com/on-munseo/on-munseo.github.io/blob/main/MCP.md#5-이용-조건약관-요약) (Korean). Full text: [terms of use](https://onmunseo.kr/terms) and [privacy policy](https://onmunseo.kr/privacy) (Korean).
+- “Hangul”, “Hancom”, “HWP” and “HWPX” are trademarks or registered trademarks of Hancom Inc. On 문서 is an independent service with no affiliation, sponsorship or endorsement by Hancom Inc.
+- Claude, ChatGPT, Cursor, VS Code and other names belong to their owners and are used only to explain how to connect. Full notices: [notices in the MCP guide](https://github.com/on-munseo/on-munseo.github.io/blob/main/MCP.md#고지) (Korean).
+
+## Glossary
+
+- **MCP** — Model Context Protocol, an open standard for AI tools to call outside tools. Add this URL as an MCP server and the AI calls these tools inside the chat.
+- **Remote MCP server** — An MCP server reached over the internet; nothing to install on your computer.
+- **Bundle endpoint** — A URL that carries one On 문서 feature set (`/mcp/text` and so on). Everything is at `/mcp`.
+- **Key (열쇠)** — The access value issued by On 문서, with a daily quota and a set of bundles. Keep it secret.
+- **Guest (손님)** — Use without a key: some tools and a small daily quota, right away.
+- **OAuth (sign-in page)** — You enter the key on the On 문서 sign-in page when connecting; the app receives a separate pass instead of the key.
+- **HWPX** — The XML format of Korean Hangul documents (KS X 6101 OWPML); .hwp is the older format.
+- **base64** — A way of writing a file as text, used to put a file inside JSON.
+- **Upload link (15 minutes)** — Uploading a file on the On 문서 web ([onmunseo.kr/start](https://onmunseo.kr/start)) gives a link that works for 15 minutes; pass it as `file_url` from AI chats that cannot send files.
+- **Markdown** — A plain-text format that marks headings (#), lists (-) and tables (|). Easy for AI to read.
+- **RAG** — Retrieval-augmented generation: the AI looks up document chunks before answering. `on_chunks` makes those chunks.
+- **TEDS** — A score for how closely a table’s cell layout, merged cells and cell text match the reference (1 is perfect).
+
+## Other On 문서 bundles
+
+| Product | Repository | Endpoint (after `https://onmunseo.kr`) |
+|---|---|---|
+| **On 문서 (all)** | [on-munseo.github.io](https://github.com/on-munseo/on-munseo.github.io) — web editor and every MCP tool | `/mcp` |
+| On 글꺼내기 | this repository | `/mcp/text` |
+| On 결재점검 | [on-check](https://github.com/on-munseo/on-check) | `/mcp/check` |
+| On 개인정보 가리기 | [on-mask](https://github.com/on-munseo/on-mask) | `/mcp/mask` |
+| On HWPX 만들기 | [on-hwpx](https://github.com/on-munseo/on-hwpx) | `/mcp/hwpx` |
+| On 공문서 쓰기 | [on-gov](https://github.com/on-munseo/on-gov) | `/mcp/gov` |
+| On 글 다듬기 | [on-tidy](https://github.com/on-munseo/on-tidy) | `/mcp/tidy` |
+| On 근거 | [on-geungeo](https://github.com/on-munseo/on-geungeo) | `/mcp/law` |
+| On폭 글꼴 (fonts) | [napurrin/onpok-fonts](https://github.com/napurrin/onpok-fonts) — free fonts (SIL OFL 1.1) | — |
+
+## License
+
+Text is [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); configuration files (`server.json`, `.claude-plugin/`, `plugin/`) are MIT. The names “On 문서” and “On 글꺼내기” and the logo are not covered by these licenses. The engine and server code of the service are not in this repository and are not public. See [LICENSE](LICENSE).
+
+---
+
+Made by [napurrin](https://github.com/napurrin), who builds and maintains it alone.

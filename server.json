@@ -1,0 +1,14 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.on-munseo/on-text",
+  "title": "On 글꺼내기",
+  "description": "Extract text and tables from Korean HWP/HWPX, PDF, Word, Excel and PowerPoint files",
+  "version": "1.0.0",
+  "websiteUrl": "https://github.com/on-munseo/on-text",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://onmunseo.kr/mcp/text"
+    }
+  ]
+}
