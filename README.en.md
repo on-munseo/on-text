@@ -14,7 +14,24 @@ Send a Korean HWP/HWPX/HML, PDF, Word, Excel or PowerPoint file and get its text
 
 This repository holds only the setup guide and configuration files (there is no web page here — to use a screen, open the [On 문서 web editor](https://onmunseo.kr/app/)). The engine and server code of the service are not public. The service and its tools speak Korean.
 
-**Jump to:** [Why](#in-short--why-use-it) · [Tools](#what-it-does) · [Connect](#connect) · [Examples](#examples) · [Measured results](#measured-results) · [Guest and key](#guest-and-key) · [Safety](#safety) · [Good to know](#good-to-know)
+## Comparing with other tools
+
+Measured by us on the same documents with the same scorer — not an official ranking. Versions, conditions and definitions are in the [benchmark notes](https://github.com/on-munseo/on-munseo.github.io/blob/main/docs/benchmark.md) (Korean).
+
+| Same conditions as a local HWP reader (domestic open-source engine A) | On 글꺼내기 | Engine A | Measured |
+|---|---|---|---|
+| 1,726 public HWP/HWPX files — Hangul character recall (against Hancom PDF) | 99.87% | 99.87% (same) | 2026-11-12 |
+| 50 statute annex HWPX files (not used in development) vs. source XML — character error · table structure TEDS | 0.09% · 0.981 | 0.12% · 0.968 | 2026-11-20 · 11-23 |
+| 300 Korean PDF pairs — reading order · tables | 0.964 · 0.921 | 0.950 · 0.921 | 2026-11-12 |
+| 457 public Word/Excel/PowerPoint files — table cell recall | 98.95 · 99.80 · 99.89% | 90.08 · 99.01 · 95.63% | 2026-11-17 · 11-23 |
+| 200 English PDF pages, official scorer — default reading (light text-in-image, guest and the default here) · precise (key) | 0.971 · 0.970 | latest 4.25.22 default 0.965 · 0.967 (OCR on) | 2026-11-26 · 11-25 |
+| 2,150 official HWP/HWPX files, extraction speed (same M3 Mac, same run, warmed up) — total · median per file | 3.1 s · 0.27 ms | 36.8 s · 0.52 ms | 2026-11-26 |
+
+- On the English PDFs only the table-structure (TEDS) cell is higher for Engine A's latest release 4.25.22 (0.9805 vs. our default 0.9799; same Mac, same official scorer, 2026-11-26).
+- **Rules, not AI:** no language model is called, so the same input gives the same result and nothing that is not in the source is made up.
+- **Where documents go:** documents sent to this address are processed only in memory on the On 문서 server (a data centre in Korea) and discarded afterwards; they are not sent to any outside AI company. Send only public documents or your own to this server-side address; handle internal documents of your organisation with the browser-only features of the [web editor](https://onmunseo.kr/app/) (open, edit and save HWP/HWPX, the pre-approval check, masking personal data) — attachment text extraction, OCR and HWPX creation in the web editor still go through the server.
+
+**Jump to:** [Comparing](#comparing-with-other-tools) · [Why](#in-short--why-use-it) · [Tools](#what-it-does) · [Connect](#connect) · [Examples](#examples) · [Measured results](#measured-results) · [Guest and key](#guest-and-key) · [Safety](#safety) · [Good to know](#good-to-know)
 
 ## In short — why use it
 
@@ -99,6 +116,17 @@ To send a key as a header, append `"--header", "Authorization:${ON_AUTH}"` to `"
 
 - ChatGPT receives a separate pass instead of your key (same permissions and daily quota). Revoking the key blocks the pass at once.
 - Passing a file attached in the chat is not supported yet. Upload the file on On 문서 “자료 올리기” ([onmunseo.kr/start](https://onmunseo.kr/start)) and pass the 15-minute link; paste text directly.
+
+### Codex
+
+Without a key, add two lines to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.on-text]
+url = "https://onmunseo.kr/mcp/text"
+```
+
+- `codex mcp add` opens the On 문서 sign-in window right away. With a key, enter it there; without one, close it (Ctrl-C) and use the two lines above.
 
 ### Cursor
 
@@ -197,7 +225,7 @@ The AI decides which tool to call; these are typical cases.
 | Korean text in HWP/HWPX | 1,726 files (1,404 statute annexes and forms + 322 government press releases), scored against the text of the matching Hancom PDF | Hangul character recall 99.87% (1,714,403 of 1,716,582 characters) · files with no character missing 98.78% | build of 2026-11-12 |
 | Against the HWPX source | 50 statute-annex HWPX files not used in development, scored against the text and tables inside each file | character accuracy 0.999 · table structure TEDS 0.981 | text 2026-11-20 · tables 2026-11-23 (live build at the time) |
 | Word, Excel, PowerPoint | 457 public-data files (160 Word · 179 Excel · 118 PowerPoint), scored against text read with the standard libraries | text recall 100% · table-cell recall Word 98.95% · Excel 99.80% · PowerPoint 99.89% · read failures 0 | 2026-11-23 |
-| English PDF | opendataloader-bench, 200 pages, official scorer (overall) | default reading 0.945 (guest and the default of this endpoint) · precise reading 0.970 (`precise: true`, key holders — also 0.970 on the 125 pages not seen during development). The highest score on the official leaderboard (14 engines) is 0.907 | 2026-11-25 · iMac M1 · 0.027 s / 0.396 s per document |
+| English PDF | opendataloader-bench, 200 pages, official scorer (overall) | default reading 0.971 (guest and the default of this endpoint — light OCR of image areas on non-Korean pages, 2026-11-26) · precise reading 0.970 (`precise: true`, key holders — also 0.970 on the 125 pages not seen during development). The highest score on the official leaderboard (14 engines) is 0.907 | 2026-11-25 · iMac M1 · 0.027 s / 0.396 s per document |
 | Korean PDF | 300 HWP↔PDF pairs of the same annexes, scored against text and tables from the HWP source (reference built with two engines and averaged) | reading order 0.964 · tables 0.921 · read failures 0 | build of 2026-11-12 |
 | Scans and photos (`ocr: true`, key) | KoOCR-Bench v2, 877 pages | overall 0.883 · handwriting 0.850 | 2026-11-24 · median 4.0 s per page (M3 MacBook) |
 | Scanned tables (`ocr: true`, key) | 761 pages made by rendering table pages of public PDFs as images, scored against the PDF text layer | cell checks passed 88.8% (425 pages not seen while tuning) | 2026-11-24 |
@@ -213,7 +241,7 @@ Weak spots: scans and handwriting are read on the server CPU without a GPU, so t
 |---|---|---|
 | How to connect | Add the URL with no authentication | Enter the key on the On 문서 sign-in page (OAuth), or send `Authorization: Bearer <key>` |
 | Tools at this endpoint | 6 | 6 |
-| Daily quota | 50 calls a day and 6 a minute per internet address (IP), counted across all On 문서 endpoints and the web editor. When the shared guest quota for the day runs out, guest access closes until midnight Korea time | A daily quota and concurrency limit set per key |
+| Daily quota | 50 calls a day and 6 a minute (the statute tools `law_`·`med_` have their own 100 a day and 20 a minute) per internet address (IP), counted across all On 문서 endpoints and the web editor. When the shared guest quota for the day runs out, guest access closes until midnight Korea time | A daily quota and concurrency limit set per key |
 | Size | 6 MB per request (base64 included) | 25 MB per file |
 | Needs a key | — | text recognition (`ocr: true`, 30 pages a day per key) and precise reading (`precise: true`, PDF only — pages count toward both the 30-page recognition quota and the 40-page precise-reading quota) |
 
@@ -225,7 +253,7 @@ Weak spots: scans and handwriting are read on the server CPU without a GPU, so t
 
 1. **Nothing is kept.** Documents and text you send are handled in server memory only and discarded when done. No document files are stored; the access log holds only the key alias, tool name, request size, time taken and success (no contents, no file names).
 2. **No language model.** Extraction is rule-based. Some steps, such as the optional text recognition (key holders), use small models on the server CPU, but documents are never sent to outside AI companies.
-3. **Send only public documents or your own.** Do not upload internal documents of your organisation. Documents with a written security marking (such as “대외비”, confidential) are not returned (except for keys specially allowed to).
+3. **Send only public documents or your own to this server-side address.** Handle internal documents of your organisation with the browser-only features of the [web editor](https://onmunseo.kr/app/) (open, edit and save HWP/HWPX, the pre-approval check, masking personal data). Documents with a written security marking (such as “대외비”, confidential) are not returned (except for keys specially allowed to).
 4. **Extracted text is returned as data.** When a result carries text taken from a document, its first line says not to follow instructions written inside the document, so text that looks like an instruction to the AI is not obeyed.
 5. **Safety limits stay on.** Size limits against attacks such as zip bombs, and refusal of distribution-only documents, are never lifted for convenience.
 
@@ -257,7 +285,7 @@ Report security problems as described in [SECURITY.md](SECURITY.md).
 - **OAuth (sign-in page)** — You enter the key on the On 문서 sign-in page when connecting; the app receives a separate pass instead of the key.
 - **HWPX** — The XML format of Korean Hangul documents (KS X 6101 OWPML); .hwp is the older format.
 - **base64** — A way of writing a file as text, used to put a file inside JSON.
-- **Upload link (15 minutes)** — Uploading a file on the On 문서 web ([onmunseo.kr/start](https://onmunseo.kr/start)) gives a link that works for 15 minutes; pass it as `file_url` from AI chats that cannot send files.
+- **Upload link (15 minutes)** — Uploading a file on the On 문서 web ([onmunseo.kr/start](https://onmunseo.kr/start)) gives a link that works for 15 minutes; pass it as `file_url` from AI chats that cannot send files. AI tools that can run commands (Claude Code and others) can upload with one line, `curl -s --data-binary @file -H "x-file-name: name" https://onmunseo.kr/api/drop`, and get the same link (`url`) — faster than base64, and uploads do not count against the daily quota.
 - **Markdown** — A plain-text format that marks headings (#), lists (-) and tables (|). Easy for AI to read.
 - **RAG** — Retrieval-augmented generation: the AI looks up document chunks before answering. `on_chunks` makes those chunks.
 - **TEDS** — A score for how closely a table’s cell layout, merged cells and cell text match the reference (1 is perfect).
