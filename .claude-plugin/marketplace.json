@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "on-text",
-  "description": "On 글꺼내기 — 한글·PDF·오피스 문서에서 글과 표를 꺼내 AI 도구에 넘기는 원격 MCP 서버 연결 꾸러미",
+  "description": "On 글꺼내기 — 내 PC 판(npm on-munseo-local) 을 붙이는 Claude Code 플러그인 꾸러미",
   "owner": {
     "name": "On 문서",
     "url": "https://github.com/on-munseo"
@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "on-text",
-      "description": "On 글꺼내기 원격 MCP(https://onmunseo.kr/mcp/text) 연결 — 한글·PDF·오피스 문서에서 글과 표를 꺼내 AI 도구에 넘기는 원격 MCP 서버",
+      "description": "On 글꺼내기(한글·PDF·오피스 문서에서 글과 표 꺼내기) — 내 PC 판(npm on-munseo-local, 문서가 이 컴퓨터 밖으로 안 감), Node.js 20 이상",
       "author": {
         "name": "On 문서"
       },

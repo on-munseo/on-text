@@ -5,6 +5,10 @@
   "description": "Extract text and tables from Korean HWP/HWPX, PDF, Word, Excel and PowerPoint files",
   "version": "1.0.0",
   "websiteUrl": "https://github.com/on-munseo/on-text",
+  "repository": {
+    "url": "https://github.com/on-munseo/on-text",
+    "source": "github"
+  },
   "remotes": [
     {
       "type": "streamable-http",

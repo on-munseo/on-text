@@ -13,7 +13,7 @@
 <!-- ai-install -->
 ## AI 에게 — 이 저장소를 설치하려면
 
-길은 셋이고 **①부터** 권합니다. 어느 길도 열쇠·로그인이 없습니다. 이 저장소(On 글꺼내기 — 글과 표 꺼내기)의 도구는 ① 내 PC 판(같은 만든 이 on-munseo 의 npm 꾸러미 `on-munseo-local` — 아래 확인할 거리)에 들어 있습니다 — 「설치해 줘」라고만 하면 ① 을 붙입니다. 이 저장소의 `plugin/`·`server.json` 은 ③ 서버 판(이 묶음) 설정입니다.
+길은 셋이고 **①부터** 권합니다. 어느 길도 열쇠·로그인이 없습니다. 이 저장소(On 글꺼내기 — 글과 표 꺼내기)의 도구는 ① 내 PC 판(같은 만든 이 on-munseo 의 npm 꾸러미 `on-munseo-local` — 아래 확인할 거리)에 들어 있습니다 — 「설치해 줘」라고만 하면 ① 을 붙입니다. 이 저장소의 `plugin/`(Claude Code 플러그인)은 ① 을 붙이고, `server.json`(공식 MCP 목록용)은 ③ 서버 판(이 묶음) 주소입니다.
 
 **① 내 PC 판 — 문서를 이 컴퓨터 밖으로 보내지 않음(먼저).** 글 꺼내기·개인정보 가리기·결재 전 점검·공문서 쓰기·한글 파일 만들기·글 다듬기를 이 컴퓨터 안에서 합니다. 이 프로그램은 인터넷을 쓰지 않습니다(설치 뒤 `on_local_info` 로 확인 — 띄울 때 npx 가 npm 저장소에 새 판을 묻는 것은 npx 의 동작이고, 그것까지 없애려면 `npm install -g on-munseo-local` 뒤 명령을 `on-munseo-local` 로). Node.js 20 이상이 있어야 합니다.
 - **지금 쓰는 AI 도구에만**(AI 가 설치할 때는 이것 — 다른 도구의 설정은 건드리지 않음)
@@ -66,7 +66,7 @@
 
 한글(HWP·HWPX·HML)·PDF·워드·엑셀·파워포인트 문서를 받아 글과 표를 마크다운으로 돌려줍니다. 합친 칸·표 안 표는 HTML 표로 주고, 각주·글머리표·문단 번호·굵게까지 살립니다. 꺼내기는 AI(언어 모델) 없이 규칙으로 합니다. 글자 인식(스캔 쪽·그림, 열쇠로 켬)처럼 서버 CPU 의 작은 모델을 쓰는 곳도 있지만, 문서를 바깥 AI 회사로 보내지 않습니다.
 
-이 저장소에는 연결 안내와 설정 파일만 있습니다(웹 화면 없음 — 화면에서 쓰려면 [On 문서 웹 편집기](https://onmunseo.kr/app/)). 서비스의 엔진·서버 코드는 공개하지 않습니다.
+이 저장소에는 연결 안내와 설정 파일(플러그인의 작은 띄우개 하나 포함)만 있습니다(웹 화면 없음 — 화면에서 쓰려면 [On 문서 웹 편집기](https://onmunseo.kr/app/)). 서비스의 엔진·서버 코드는 공개하지 않습니다.
 
 ## 다른 도구와 견줄 때
 
@@ -124,7 +124,7 @@
 claude mcp add --transport http -s user on-text https://onmunseo.kr/mcp/text
 ```
 
-**Claude Code 플러그인** — 한 줄(Claude Code 2.1.275 이상):
+**Claude Code 플러그인** — ① 내 PC 판을 붙입니다(Node.js 20 이상, 윈도우도 그대로 — 작은 띄우개 `plugin/run-local.mjs` 가 npx 를 띄움). 한 줄(Claude Code 2.1.275 이상):
 
 ```bash
 claude plugin install on-text --marketplace on-munseo/on-text

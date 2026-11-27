@@ -1,8 +1,10 @@
 {
   "mcpServers": {
-    "on-text": {
-      "type": "http",
-      "url": "https://onmunseo.kr/mcp/text"
+    "on-local": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/run-local.mjs"
+      ]
     }
   }
 }
