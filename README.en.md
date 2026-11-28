@@ -10,7 +10,7 @@ A remote MCP server that extracts text and tables from Korean HWP/HWPX, PDF, Wor
 
 </div>
 
-Send a Korean HWP/HWPX/HML, PDF, Word, Excel or PowerPoint file and get its text and tables back as Markdown. Merged cells and nested tables come back as HTML tables; footnotes, bullets, paragraph numbers and bold text are kept. Extraction is rule-based, with no language model. Some steps, such as the optional text recognition for scans and images (key holders, `ocr: true`), use small models on the server CPU, but documents are never sent to an outside AI company.
+Send a Korean HWP/HWPX/HML, PDF, Word, Excel or PowerPoint file and get its text and tables back as Markdown. Merged cells and nested tables come back as HTML tables; footnotes, bullets, paragraph numbers and bold text are kept. Extraction is rule-based, with no language model. Text recognition uses small models on the server CPU (light OCR of text in PDF images by default; scans and photos with `ocr: true`, key required), but documents are never sent to an outside AI company.
 
 This repository holds only the setup guide and configuration files (including one small plugin launcher) (there is no web page here — to use a screen, open the [On 문서 web editor](https://onmunseo.kr/app/)). The engine and server code of the service are not public. The service and its tools speak Korean.
 
@@ -87,18 +87,25 @@ The tools do not attach to the conversation that registered them. When done, tel
 
 ## Measured results
 
+The 0.3.2 bundle uses On Hangul Engine 2.2.4. Local 0.3.2 was measured as an unpublished candidate; installation commands and fingerprints still refer to 0.3.1, the latest npm release.
+
 | What | Test set | Result | Build · date · machine |
 |---|---|---|---|
 | Korean text in HWP/HWPX | 1,726 files (1,404 statute annexes and forms + 322 government press releases), scored against the text of the matching Hancom PDF | Hangul character recall 99.87% (1,714,403 of 1,716,582 characters) · files with no character missing 98.78% | build of 2026-11-12 |
 | Against the HWPX source | 50 statute-annex HWPX files not used in development, scored against the text and tables inside each file | character accuracy 0.999 · table structure TEDS 0.981 | text 2026-11-20 · tables 2026-11-23 (live build at the time) |
 | Word, Excel, PowerPoint | 457 public-data files (160 Word · 179 Excel · 118 PowerPoint), scored against text read with the standard libraries | text recall 100% · table-cell recall Word 98.95% · Excel 99.80% · PowerPoint 99.89% · read failures 0 | 2026-11-23 |
-| English PDF | opendataloader-bench, 200 pages, official scorer (overall) | default reading 0.971 (guest and the default of this endpoint — light OCR of image areas on non-Korean pages, 2026-11-26) · precise reading 0.970 (`precise: true`, key holders — also 0.970 on the 125 pages not seen during development). | 2026-11-25 · iMac M1 · 0.027 s / 0.396 s per document |
+| English PDF — server default reading | opendataloader-bench, 200 documents, unmodified official scorer | overall 0.971 (0.9714) · reading order 0.973 · tables 0.981 · headings 0.959 (light OCR of text in images — default for guests, AI tool connections and keys) | 2026-11-28 · MacBook M5 Pro · 0.119 s per document |
+| English PDF — precise reading | same 200 documents, scorer, date and machine | overall 0.971 (0.9705) · tables 0.983 (`precise: true`, selected with a key) | 0.275 s per document |
+| English PDF — OCR off | same 200 documents, scorer, date and machine | overall 0.945 (0.9454, `ocr: false`) | 0.019 s per document |
+| English PDF — local 0.3.2 candidate | same 200 documents, scorer, date and machine | overall 0.971 (0.97132) · reading order 0.973 · tables 0.981 · headings 0.959 | byte-identical output to the server edition (0.97136) on 190 documents |
 | Korean PDF | 300 HWP↔PDF pairs of the same annexes, scored against text and tables from the HWP source (reference built with two engines and averaged) | reading order 0.964 · tables 0.921 · read failures 0 | build of 2026-11-12 |
 | Scans and photos (`ocr: true`, key) | KoOCR-Bench v2, 877 pages | overall 0.883 · handwriting 0.850 | 2026-11-24 · median 4.0 s per page (M3 MacBook) |
 | Scanned tables (`ocr: true`, key) | 761 pages made by rendering table pages of public PDFs as images, scored against the PDF text layer | cell checks passed 88.8% (425 pages not seen while tuning) | 2026-11-24 |
 | Speed | 2,150 public HWP/HWPX files (statute annexes, forms and more) | 3.1 s for all (median 0.27 ms per file, warmed up — output identical to the previous build, character for character) | live build of 2026-11-26 · M3 MacBook |
 
 <sub>All values were measured by us. Rows marked “build of 2026-11-12” were measured with that build and have not been re-run on the live build. Definitions, confidence intervals and methods are in the [measurement notes](https://github.com/on-munseo/on-munseo.github.io/blob/main/docs/benchmark.md#5-글-꺼내기파싱--ai검색에-넣을-글과-표) (Korean).</sub>
+
+On just the 125 English PDFs not seen during development, default reading scores 0.971 (0.9707) and precise reading 0.970 (0.9699). The local edition has included light OCR since 0.3.1 (old versions through 0.3.0 had no OCR and scored 0.945).
 
 Weak spots: scans and handwriting are read on the server CPU without a GPU, so they score below large AI models. Tables in Korean PDFs (0.921) score lower than other formats, and 16 of the 1,726 HWP/HWPX files lost more than 10 characters. Word table cells (98.95%) are the lowest of the three Office formats.
 
@@ -115,6 +122,7 @@ Weak spots: scans and handwriting are read on the server CPU without a GPU, so t
 
 - The 6 guest tools were checked on 2026-11-26 by calling `tools/list` on the live server as a guest.
 - Options: `ocr: true` text recognition for scanned pages and images (key holders, 30 pages a day) · `precise: true` reads text and tables inside PDF images in place (key holders; `on_read`, `on_tables`, `on_chunks`) · `mask` (`on_read` masks automatically only when registration, account, card or passport numbers are found unless you set it; true always masks, false gives the original; `on_tables`, `on_chunks` and `on_compare` mask when true).
+- In `on_read`, `table_layout: "pretty"` puts each HTML table tag on a new line (same text and cells). The server scores 0.975 (0.9749) on the 200 English PDFs above with this option. Reading order scores rise because the reference tables use that layout; it is not the default.
 - Send files as `file_base64` (the file in base64) plus `file_name` (the extension decides the format), or put a 15-minute link from On 문서 “자료 올리기” (upload, [onmunseo.kr/start](https://onmunseo.kr/start)) in `file_url`. `on_compare` takes the two documents as `a_base64`/`a_name` (or `a_url`) and `b_base64`/`b_name` (or `b_url`).
 
 ## Connect
@@ -294,7 +302,7 @@ The AI decides which tool to call; these are typical cases.
 ## Safety
 
 1. **Nothing is kept.** Documents and text you send are handled in server memory only and discarded when done. No document files are stored; the access log holds only the key alias, tool name, request size, time taken and success (no contents, no file names).
-2. **No language model.** Extraction is rule-based. Some steps, such as the optional text recognition (key holders), use small models on the server CPU, but documents are never sent to outside AI companies.
+2. **No language model.** Extraction is rule-based. Text recognition uses small models on the server CPU (light OCR of text in PDF images by default; scans and photos with `ocr: true`, key required), but documents are never sent to outside AI companies.
 3. **Send only public documents or your own to this server-side address.** Handle internal documents of your organisation with the browser-only features of the [web editor](https://onmunseo.kr/app/) (open, edit and save HWP/HWPX, the pre-approval check, masking personal data). Documents with a written security marking (such as “대외비”, confidential) are not returned (except for keys specially allowed to).
 4. **Extracted text is returned as data.** When a result carries text taken from a document, its first line says not to follow instructions written inside the document, so text that looks like an instruction to the AI is not obeyed.
 5. **Safety limits stay on.** Size limits against attacks such as zip bombs, and refusal of distribution-only documents, are never lifted for convenience.
@@ -356,10 +364,10 @@ Measured by us on the same documents with the same scorer — not an official ra
 | 50 statute annex HWPX files (not used in development) vs. source XML — character error · table structure TEDS | 0.09% · 0.981 | 0.12% · 0.968 | 2026-11-20 · 11-23 |
 | 300 Korean PDF pairs — reading order · tables | 0.964 · 0.921 | 0.950 · 0.921 | 2026-11-12 |
 | 457 public Word/Excel/PowerPoint files — table cell recall | 98.95 · 99.80 · 99.89% | 90.08 · 99.01 · 95.63% | 2026-11-17 · 11-23 |
-| 200 English PDF pages, official scorer — default reading (light text-in-image, guest and the default here) · precise (key) | 0.971 · 0.970 | latest 4.25.22 default 0.965 · 0.967 (OCR on) | 2026-11-26 · 11-25 |
+| 200 English PDFs, official scorer — default reading overall · tables (same MacBook M5 Pro) | 0.971 (0.9707) · 0.9799 | 4.25.22 default 0.965 · 0.9805 | 2026-11-26 (same day) |
 | 2,150 official HWP/HWPX files, extraction speed (same M3 Mac, same run, warmed up) — total · median per file | 3.1 s · 0.27 ms | 36.8 s · 0.52 ms | 2026-11-26 |
 
-- On the English PDFs only the table-structure (TEDS) cell is higher for Engine A's latest release 4.25.22 (0.9805 vs. our default 0.9799; same Mac, same official scorer, 2026-11-26).
+- The English PDF comparison above uses measurements from the same day, 2026-11-26. Table structure (TEDS) is higher for domestic open-source Engine A 4.25.22 (0.9805 vs. our default 0.9799). A was not re-measured on 11-28.
 - On the official leaderboard of the English PDF benchmark (opendataloader-bench), the highest of the 14 listed engines is 0.907. That value is the one the leaderboard publishes (engines outside the leaderboard are not included); our values come from the same official scorer, run by us.
 
 ## License
